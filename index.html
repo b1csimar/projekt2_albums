@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>Albumok kezelése</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input, button { margin: 0.3rem; padding: 0.4rem; }
+    .album { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Zenekar Albumok</h1>
+
+  <h2>Új album hozzáadása</h2>
+  <input id="band" placeholder="Zenekar neve">
+  <input id="title" placeholder="Album címe">
+  <input id="year" placeholder="Kiadás éve" type="number">
+  <input id="genre" placeholder="Stílus">
+  <button onclick="addAlbum()">Hozzáadás</button>
+
+  <h2>Albumok listája</h2>
+  <div id="albums"></div>
+
+  <script>
+    const API = 'http://localhost:3000/albums';
+
+    async function fetchAlbums() {
+      const res = await fetch(API);
+      const data = await res.json();
+      const container = document.getElementById('albums');
+      container.innerHTML = '';
+      data.forEach(album => {
+        const el = document.createElement('div');
+        el.className = 'album';
+        el.innerHTML = `
+          <strong>${album.band}</strong> - ${album.title} (${album.year})<br>
+          Stílus: ${album.genre}<br>
+          <button onclick='showAlbum(${album.id})'>Részletek</button>
+          <button onclick='deleteAlbum(${album.id})'>Törlés</button>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    async function addAlbum() {
+      const album = {
+        band: document.getElementById('band').value,
+        title: document.getElementById('title').value,
+        year: parseInt(document.getElementById('year').value),
+        genre: document.getElementById('genre').value
+      };
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(album)
+      });
+      fetchAlbums();
+    }
+
+    async function deleteAlbum(id) {
+      await fetch(`${API}/${id}`, { method: 'DELETE' });
+      fetchAlbums();
+    }
+
+    async function showAlbum(id) {
+      const album = await (await fetch(`${API}/${id}`)).json();
+      const newTitle = prompt('Új cím:', album.title);
+      const newGenre = prompt('Új stílus:', album.genre);
+      const newYear = prompt('Új év:', album.year);
+      if (newTitle) {
+        await fetch(`${API}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle, genre: newGenre, year: parseInt(newYear) })
+        });
+        fetchAlbums();
+      }
+    }
+
+    fetchAlbums();
+  </script>
+</body>
+</html>
